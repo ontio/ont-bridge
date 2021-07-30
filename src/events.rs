@@ -13,6 +13,14 @@ pub fn new_admin_event(old_admin: &Address, new_pending_admin: &Address) {
         .notify();
 }
 
+pub fn transfer_token_pair_owner_evt(old_owner: &Address, new_owner: &Address) {
+    EventBuilder::new()
+        .string("transferTokenPairOwner")
+        .address(old_owner)
+        .address(new_owner)
+        .notify();
+}
+
 pub fn oep4_to_erc20_event(
     ont_acct: &Address, eth_acct: &Address, amount: U128, erc20_amt: U128, oep4_addr: &Address,
     erc20_addr: &Address,

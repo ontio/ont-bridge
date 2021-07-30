@@ -4,9 +4,7 @@
 extern crate ontio_std as ostd;
 
 use crate::erc20::{balance_of_erc20, transfer_erc20, transfer_from_erc20};
-use crate::events::{
-    erc20_to_oep4_event, new_admin_event, new_pending_admin_event, oep4_to_erc20_event,
-};
+use crate::events::{erc20_to_oep4_event, new_admin_event, new_pending_admin_event, oep4_to_erc20_event, transfer_token_pair_owner_evt};
 use crate::oep4::{balance_of_neovm, transfer_neovm};
 use ostd::abi::{Decoder, Encoder, Sink, Source};
 use ostd::database::{delete, get, put};
@@ -24,6 +22,8 @@ const KEY_TOKEN_PAIR_NAME: &[u8] = b"4";
 
 #[derive(Encoder, Decoder, Default)]
 struct TokenPair {
+    //must be ontology address
+    owner: Address,
     erc20: Address,
     erc20_decimals: u32,
     oep4: Address,
@@ -70,7 +70,8 @@ fn register_token_pair(
     token_pair_name: &[u8], oep4_addr: &Address, oep4_decimals: U128, erc20_addr: &Address,
     erc20_decimals: U128,
 ) -> bool {
-    assert!(check_witness(&get_admin()), "need admin signature");
+    let admin = get_admin();
+    assert!(check_witness(&admin), "need admin signature");
     assert!(!oep4_addr.is_zero(), "invalid oep4 address");
     assert!(!erc20_addr.is_zero(), "invalid erc20 address");
 
@@ -85,6 +86,7 @@ fn register_token_pair(
     put(
         pair_key.as_slice(),
         TokenPair {
+            owner: admin,
             erc20: *erc20_addr,
             erc20_decimals: erc20_decimals.raw() as u32,
             oep4: *oep4_addr,
@@ -94,13 +96,24 @@ fn register_token_pair(
     true
 }
 
+//new_owner can be zero address, it means close update function
+fn transfer_token_pair_owner(token_pair_name: &[u8], new_owner: &Address) -> bool {
+    let pair_key = gen_token_pair_key(token_pair_name);
+    let mut pair: TokenPair = get(pair_key.as_slice()).expect("token pair name has not registered");
+    let old = pair.owner.clone();
+    pair.owner = *new_owner;
+    put(pair_key, pair);
+    transfer_token_pair_owner_evt(&old, new_owner);
+    true
+}
+
 fn update_token_pair(
     token_pair_name: &[u8], oep4_addr: &Address, oep4_decimals: U128, erc20_addr: &Address,
     erc20_decimals: U128, eth_acct: &Address, ont_acct: &Address,
 ) -> bool {
-    assert!(check_witness(&get_admin()), "need admin signature");
-    let pair_key = gen_key(PREFIX_TOKEN_PAIR, token_pair_name);
+    let pair_key = gen_token_pair_key(token_pair_name);
     let mut pair: TokenPair = get(pair_key.as_slice()).expect("token pair name has not registered");
+    assert!(check_witness(&pair.owner), "need token pair owner signature");
     let this = &address();
     if &pair.oep4 != oep4_addr && !oep4_addr.is_zero() {
         assert!(!ont_acct.is_zero(), "ont acct should not be nil");
@@ -120,23 +133,8 @@ fn update_token_pair(
     true
 }
 
-fn unregister_token_pair(token_pair_name: &[u8], ont_acct: &Address, eth_acct: &Address) -> bool {
-    assert!(check_witness(&get_admin()), "need admin signature");
-    let token_pair: Option<TokenPair> = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name).as_slice());
-    if let Some(pair) = token_pair {
-        let this = address();
-        let oep4_balance = balance_of_neovm(&pair.oep4, &this);
-        transfer_neovm(&pair.oep4, &this, ont_acct, oep4_balance);
-        let erc20_balance = balance_of_erc20(&this, &pair.erc20, &this);
-        transfer_erc20(&this, &pair.erc20, eth_acct, erc20_balance);
-        let mut all_token_pair_name = get_all_token_pair_name();
-        let index = all_token_pair_name.iter().position(|item| item == token_pair_name).unwrap();
-        all_token_pair_name.remove(index);
-        put(KEY_TOKEN_PAIR_NAME, all_token_pair_name);
-        true
-    } else {
-        false
-    }
+fn gen_token_pair_key(token_name: &[u8]) -> Vec<u8> {
+    gen_key(PREFIX_TOKEN_PAIR, token_name)
 }
 
 fn get_token_pair(token_name: &[u8]) -> TokenPair {
@@ -284,6 +282,14 @@ pub fn invoke() {
                 erc20_decimals,
             ))
         }
+        "transferTokenPairOwner" => {
+            let (token_pair_name, new_owner) =
+                source.read().unwrap();
+            sink.write(transfer_token_pair_owner(
+                token_pair_name,
+                new_owner,
+            ))
+        }
         "updateTokenPair" => {
             let (
                 token_pair_name,
@@ -304,10 +310,6 @@ pub fn invoke() {
                 ont_acct,
             ))
         }
-        "unregisterTokenPair" => {
-            let (token_pair_name, ont_acct, eth_acct) = source.read().unwrap();
-            sink.write(unregister_token_pair(token_pair_name, ont_acct, eth_acct))
-        }
         "getAllTokenPairName" => {
             sink.write(get_all_token_pair_name());
         }
@@ -320,15 +322,15 @@ pub fn invoke() {
             let vm_type: U128 = vm_type;
             sink.write(migrate(code, vm_type.raw() as u32, name, version, author, email, desc));
         }
-        "oep4ToErc20" => {
-            let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
-            sink.write(oep4_to_erc20(ont_acct, eth_acct, amount, token_pair_name));
-        }
         "erc20ToOep4" => {
             let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
             sink.write(erc20_to_oep4(ont_acct, eth_acct, amount, token_pair_name));
         }
-        _ => panic!("invalid action!"),
+        "oep4ToErc20" => {
+            let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
+            sink.write(oep4_to_erc20(ont_acct, eth_acct, amount, token_pair_name));
+        }
+        _ => panic!("unsupported action!"),
     }
 
     ret(sink.bytes())
