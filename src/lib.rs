@@ -107,15 +107,15 @@ fn update_token_pair(
         let ba = balance_of_neovm(&pair.oep4, this);
         transfer_neovm(&pair.oep4, this, ont_acct, ba);
         pair.oep4 = *oep4_addr;
-        pair.oep4_decimals = oep4_decimals.raw() as u32;
     }
+    pair.oep4_decimals = oep4_decimals.raw() as u32;
     if &pair.erc20 != erc20_addr && !erc20_addr.is_zero() {
         assert!(!eth_acct.is_zero(), "eth acct should not be nil");
         let ba = balance_of_erc20(this, &pair.erc20, this);
         transfer_erc20(this, &pair.erc20, eth_acct, ba);
         pair.erc20 = *erc20_addr;
-        pair.erc20_decimals = erc20_decimals.raw() as u32;
     }
+    pair.erc20_decimals = erc20_decimals.raw() as u32;
     put(pair_key.as_slice(), pair);
     true
 }
@@ -172,40 +172,36 @@ fn oep4_to_erc20(
 ) -> bool {
     assert!(check_witness(ont_acct));
     assert!(!amount.is_zero(), "amount should be more than 0");
-    let token_pair: Option<TokenPair> = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name));
-    if let Some(pair) = token_pair {
-        // 由大精度到小精度转换 会有精度丢失
-        let decimals_delta = if pair.erc20_decimals < pair.oep4_decimals {
-            let decimals_delta = pair.oep4_decimals - pair.erc20_decimals;
-            let remainder = amount.raw() % 10u128.pow(decimals_delta);
-            if remainder != 0 {
-                amount -= U128::new(remainder);
-            }
-            decimals_delta
-        } else {
-            pair.erc20_decimals - pair.oep4_decimals
-        };
-        let this = &address();
-        let before = balance_of_neovm(&pair.oep4, this);
-        transfer_neovm(&pair.oep4, ont_acct, this, amount);
-        let after = balance_of_neovm(&pair.oep4, this);
-        let delta = after - before;
-        let erc20_amt = if delta.is_zero() {
-            U128::new(0)
-        } else {
-            let erc20_amt = if pair.erc20_decimals < pair.oep4_decimals {
-                delta / U128::new(10u128.pow(decimals_delta))
-            } else {
-                delta * U128::new(10u128.pow(decimals_delta))
-            };
-            transfer_erc20(this, &pair.erc20, eth_acct, erc20_amt);
-            erc20_amt
-        };
-        oep4_to_erc20_event(ont_acct, eth_acct, amount, erc20_amt, &pair.oep4, &pair.erc20);
-        true
+    let pair: TokenPair = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("amount should be more than 0");
+    // 由大精度到小精度转换 会有精度丢失
+    let decimals_delta = if pair.erc20_decimals < pair.oep4_decimals {
+        let decimals_delta = pair.oep4_decimals - pair.erc20_decimals;
+        let remainder = amount.raw() % 10u128.pow(decimals_delta);
+        if remainder != 0 {
+            amount -= U128::new(remainder);
+        }
+        decimals_delta
     } else {
-        false
-    }
+        pair.erc20_decimals - pair.oep4_decimals
+    };
+    let this = &address();
+    let before = balance_of_neovm(&pair.oep4, this);
+    transfer_neovm(&pair.oep4, ont_acct, this, amount);
+    let after = balance_of_neovm(&pair.oep4, this);
+    let delta = after - before;
+    let erc20_amt = if delta.is_zero() {
+        U128::new(0)
+    } else {
+        let erc20_amt = if pair.erc20_decimals < pair.oep4_decimals {
+            delta / U128::new(10u128.pow(decimals_delta))
+        } else {
+            delta * U128::new(10u128.pow(decimals_delta))
+        };
+        transfer_erc20(this, &pair.erc20, eth_acct, erc20_amt);
+        erc20_amt
+    };
+    oep4_to_erc20_event(ont_acct, eth_acct, amount, erc20_amt, &pair.oep4, &pair.erc20);
+    true
 }
 
 fn erc20_to_oep4(
@@ -213,41 +209,37 @@ fn erc20_to_oep4(
 ) -> bool {
     assert!(check_witness(ont_acct));
     assert!(!amount.is_zero(), "amount should be more than 0");
-    let token_pair: Option<TokenPair> = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name));
-    if let Some(pair) = token_pair {
-        // 由大精度到小精度转换 会有精度丢失
-        let decimals_delta = if pair.erc20_decimals > pair.oep4_decimals {
-            let decimals_delta = pair.erc20_decimals - pair.oep4_decimals;
-            let remainder = amount.raw() % 10u128.pow(decimals_delta);
-            if remainder != 0 {
-                amount -= U128::new(remainder);
-            }
-            decimals_delta
-        } else {
-            pair.oep4_decimals - pair.erc20_decimals
-        };
-        let this = &address();
-        let before = balance_of_erc20(this, &pair.erc20, this);
-        transfer_from_erc20(ont_acct, &pair.erc20, eth_acct, this, amount);
-        let after = balance_of_erc20(this, &pair.erc20, this);
-        assert!(after >= before);
-        let delta = after - before;
-        let oep4_amt = if delta.is_zero() {
-            U128::new(0)
-        } else {
-            let oep4_amt = if pair.erc20_decimals > pair.oep4_decimals {
-                delta / U128::new(10u128.pow(decimals_delta))
-            } else {
-                delta * U128::new(10u128.pow(decimals_delta))
-            };
-            transfer_neovm(&pair.oep4, this, ont_acct, oep4_amt);
-            oep4_amt
-        };
-        erc20_to_oep4_event(ont_acct, eth_acct, amount, oep4_amt, &pair.oep4, &pair.erc20);
-        true
+    let pair: TokenPair = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("invalid token pair name");
+    // 由大精度到小精度转换 会有精度丢失
+    let decimals_delta = if pair.erc20_decimals > pair.oep4_decimals {
+        let decimals_delta = pair.erc20_decimals - pair.oep4_decimals;
+        let remainder = amount.raw() % 10u128.pow(decimals_delta);
+        if remainder != 0 {
+            amount -= U128::new(remainder);
+        }
+        decimals_delta
     } else {
-        false
-    }
+        pair.oep4_decimals - pair.erc20_decimals
+    };
+    let this = &address();
+    let before = balance_of_erc20(this, &pair.erc20, this);
+    transfer_from_erc20(ont_acct, &pair.erc20, eth_acct, this, amount);
+    let after = balance_of_erc20(this, &pair.erc20, this);
+    assert!(after >= before);
+    let delta = after - before;
+    let oep4_amt = if delta.is_zero() {
+        U128::new(0)
+    } else {
+        let oep4_amt = if pair.erc20_decimals > pair.oep4_decimals {
+            delta / U128::new(10u128.pow(decimals_delta))
+        } else {
+            delta * U128::new(10u128.pow(decimals_delta))
+        };
+        transfer_neovm(&pair.oep4, this, ont_acct, oep4_amt);
+        oep4_amt
+    };
+    erc20_to_oep4_event(ont_acct, eth_acct, amount, oep4_amt, &pair.oep4, &pair.erc20);
+    true
 }
 
 fn gen_key<T: Encoder>(prefix: &[u8], post: T) -> Vec<u8> {
@@ -328,15 +320,15 @@ pub fn invoke() {
             let vm_type: U128 = vm_type;
             sink.write(migrate(code, vm_type.raw() as u32, name, version, author, email, desc));
         }
-        "erc20ToOep4" => {
-            let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
-            sink.write(erc20_to_oep4(ont_acct, eth_acct, amount, token_pair_name));
-        }
         "oep4ToErc20" => {
             let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
             sink.write(oep4_to_erc20(ont_acct, eth_acct, amount, token_pair_name));
         }
-        _ => panic!("unsupported action!"),
+        "erc20ToOep4" => {
+            let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
+            sink.write(erc20_to_oep4(ont_acct, eth_acct, amount, token_pair_name));
+        }
+        _ => panic!("invalid action!"),
     }
 
     ret(sink.bytes())
