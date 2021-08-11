@@ -171,7 +171,7 @@ fn oep4_to_erc20(
     assert!(check_witness(ont_acct));
     assert!(!amount.is_zero(), "amount should be more than 0");
     let pair: TokenPair = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("amount should be more than 0");
-    // 由大精度到小精度转换 会有精度丢失
+    // There will be precision loss in the conversion from large precision to small precision
     let decimals_delta = if pair.erc20_decimals < pair.oep4_decimals {
         let decimals_delta = pair.oep4_decimals - pair.erc20_decimals;
         let remainder = amount.raw() % 10u128.pow(decimals_delta);
@@ -208,7 +208,7 @@ fn erc20_to_oep4(
     assert!(check_witness(ont_acct));
     assert!(!amount.is_zero(), "amount should be more than 0");
     let pair: TokenPair = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("invalid token pair name");
-    // 由大精度到小精度转换 会有精度丢失
+    // There will be precision loss in the conversion from large precision to small precision
     let decimals_delta = if pair.erc20_decimals > pair.oep4_decimals {
         let decimals_delta = pair.erc20_decimals - pair.oep4_decimals;
         let remainder = amount.raw() % 10u128.pow(decimals_delta);
