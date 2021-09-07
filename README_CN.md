@@ -9,7 +9,7 @@
 * 参数： 无
 
 * 返回值
-    * Vec<Vec<u8>>, 二维字节数组， 可以用utf8编码转换成可视化的tokenPairName, 例如 pUSDT-USDT
+  * Vec<Vec<u8>>, 二维字节数组， 可以用utf8编码转换成可视化的tokenPairName, 例如 pUSDT-USDT
 
 2. getTokenPair
 
@@ -22,7 +22,7 @@
 |token_pair_name|&[u8], 字节数组|
 
 * 返回值
-    * TokenPair, 其定义如下,请按照结构体定义进行解析
+  * TokenPair, 其定义如下,请按照结构体定义进行解析
 
 ```
 #[derive(Encoder, Decoder, Default)]

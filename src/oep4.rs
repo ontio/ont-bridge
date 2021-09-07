@@ -35,7 +35,10 @@ pub fn transfer_neovm(contract: &Address, from: &Address, to: &Address, amount: 
         nested.address(to);
         nested.number(amount);
         nested.finish();
-        assert!(call_neovm_bool(contract, builder.bytes().as_slice()), "oep4 transfer failed");
+        assert!(
+            call_neovm_bool(contract, builder.bytes().as_slice()),
+            "oep4 transfer failed"
+        );
     }
 }
 
