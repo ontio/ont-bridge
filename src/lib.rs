@@ -4,7 +4,10 @@
 extern crate ontio_std as ostd;
 
 use crate::erc20::{balance_of_erc20, transfer_erc20, transfer_from_erc20};
-use crate::events::{erc20_to_oep4_event, new_admin_event, new_pending_admin_event, oep4_to_erc20_event, transfer_token_pair_owner_evt};
+use crate::events::{
+    erc20_to_oep4_event, new_admin_event, new_pending_admin_event, oep4_to_erc20_event,
+    transfer_token_pair_owner_evt,
+};
 use crate::oep4::{balance_of_neovm, transfer_neovm};
 use ostd::abi::{Decoder, Encoder, Sink, Source};
 use ostd::database::{delete, get, put};
@@ -54,7 +57,10 @@ fn get_pending_admin() -> Address {
 
 fn accept_admin() -> bool {
     let pending_admin = get_pending_admin();
-    assert!(check_witness(&get_pending_admin()), "check pending admin signature failed");
+    assert!(
+        check_witness(&get_pending_admin()),
+        "check pending admin signature failed"
+    );
     let old_admin = get_admin();
     put(KEY_ADMIN, pending_admin);
     delete(KEY_PENDING_ADMIN);
@@ -67,7 +73,10 @@ fn get_all_token_pair_name() -> Vec<Vec<u8>> {
 }
 
 fn register_token_pair(
-    token_pair_name: &[u8], oep4_addr: &Address, oep4_decimals: U128, erc20_addr: &Address,
+    token_pair_name: &[u8],
+    oep4_addr: &Address,
+    oep4_decimals: U128,
+    erc20_addr: &Address,
     erc20_decimals: U128,
 ) -> bool {
     let admin = get_admin();
@@ -108,12 +117,20 @@ fn transfer_token_pair_owner(token_pair_name: &[u8], new_owner: &Address) -> boo
 }
 
 fn update_token_pair(
-    token_pair_name: &[u8], oep4_addr: &Address, oep4_decimals: U128, erc20_addr: &Address,
-    erc20_decimals: U128, eth_acct: &Address, ont_acct: &Address,
+    token_pair_name: &[u8],
+    oep4_addr: &Address,
+    oep4_decimals: U128,
+    erc20_addr: &Address,
+    erc20_decimals: U128,
+    eth_acct: &Address,
+    ont_acct: &Address,
 ) -> bool {
     let pair_key = gen_token_pair_key(token_pair_name);
     let mut pair: TokenPair = get(pair_key.as_slice()).expect("token pair name has not registered");
-    assert!(check_witness(&pair.owner), "need token pair owner signature");
+    assert!(
+        check_witness(&pair.owner),
+        "need token pair owner signature"
+    );
     let this = &address();
     if &pair.oep4 != oep4_addr && !oep4_addr.is_zero() {
         assert!(!ont_acct.is_zero(), "ont acct should not be nil");
@@ -142,13 +159,21 @@ fn get_token_pair(token_name: &[u8]) -> TokenPair {
 }
 
 fn migrate(
-    code: &[u8], vm_type: u32, name: &str, version: &str, author: &str, email: &str, desc: &str,
+    code: &[u8],
+    vm_type: u32,
+    name: &str,
+    version: &str,
+    author: &str,
+    email: &str,
+    desc: &str,
 ) -> bool {
     assert!(check_witness(&get_admin()), "check admin signature failed");
     let this = &address();
     let all_token_pair_name = get_all_token_pair_name();
-    let token_pairs: Vec<TokenPair> =
-        all_token_pair_name.iter().map(|name| get_token_pair(name)).collect();
+    let token_pairs: Vec<TokenPair> = all_token_pair_name
+        .iter()
+        .map(|name| get_token_pair(name))
+        .collect();
 
     let new_addr = contract_migrate(code, vm_type, name, version, author, email, desc);
     assert!(!new_addr.is_zero());
@@ -166,11 +191,15 @@ fn migrate(
 }
 
 fn oep4_to_erc20(
-    ont_acct: &Address, eth_acct: &Address, mut amount: U128, token_pair_name: &[u8],
+    ont_acct: &Address,
+    eth_acct: &Address,
+    mut amount: U128,
+    token_pair_name: &[u8],
 ) -> bool {
     assert!(check_witness(ont_acct));
     assert!(!amount.is_zero(), "amount should be more than 0");
-    let pair: TokenPair = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("amount should be more than 0");
+    let pair: TokenPair =
+        get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("amount should be more than 0");
     // There will be precision loss in the conversion from large precision to small precision
     let decimals_delta = if pair.erc20_decimals < pair.oep4_decimals {
         let decimals_delta = pair.oep4_decimals - pair.erc20_decimals;
@@ -198,16 +227,27 @@ fn oep4_to_erc20(
         transfer_erc20(this, &pair.erc20, eth_acct, erc20_amt);
         erc20_amt
     };
-    oep4_to_erc20_event(ont_acct, eth_acct, amount, erc20_amt, &pair.oep4, &pair.erc20);
+    oep4_to_erc20_event(
+        ont_acct,
+        eth_acct,
+        amount,
+        erc20_amt,
+        &pair.oep4,
+        &pair.erc20,
+    );
     true
 }
 
 fn erc20_to_oep4(
-    ont_acct: &Address, eth_acct: &Address, mut amount: U128, token_pair_name: &[u8],
+    ont_acct: &Address,
+    eth_acct: &Address,
+    mut amount: U128,
+    token_pair_name: &[u8],
 ) -> bool {
     assert!(check_witness(ont_acct));
     assert!(!amount.is_zero(), "amount should be more than 0");
-    let pair: TokenPair = get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("invalid token pair name");
+    let pair: TokenPair =
+        get(gen_key(PREFIX_TOKEN_PAIR, token_pair_name)).expect("invalid token pair name");
     // There will be precision loss in the conversion from large precision to small precision
     let decimals_delta = if pair.erc20_decimals > pair.oep4_decimals {
         let decimals_delta = pair.erc20_decimals - pair.oep4_decimals;
@@ -236,7 +276,14 @@ fn erc20_to_oep4(
         transfer_neovm(&pair.oep4, this, ont_acct, oep4_amt);
         oep4_amt
     };
-    erc20_to_oep4_event(ont_acct, eth_acct, amount, oep4_amt, &pair.oep4, &pair.erc20);
+    erc20_to_oep4_event(
+        ont_acct,
+        eth_acct,
+        amount,
+        oep4_amt,
+        &pair.oep4,
+        &pair.erc20,
+    );
     true
 }
 
@@ -283,12 +330,8 @@ pub fn invoke() {
             ))
         }
         "transferTokenPairOwner" => {
-            let (token_pair_name, new_owner) =
-                source.read().unwrap();
-            sink.write(transfer_token_pair_owner(
-                token_pair_name,
-                new_owner,
-            ))
+            let (token_pair_name, new_owner) = source.read().unwrap();
+            sink.write(transfer_token_pair_owner(token_pair_name, new_owner))
         }
         "updateTokenPair" => {
             let (
@@ -320,15 +363,23 @@ pub fn invoke() {
         "migrate" => {
             let (code, vm_type, name, version, author, email, desc) = source.read().unwrap();
             let vm_type: U128 = vm_type;
-            sink.write(migrate(code, vm_type.raw() as u32, name, version, author, email, desc));
-        }
-        "erc20ToOep4" => {
-            let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
-            sink.write(erc20_to_oep4(ont_acct, eth_acct, amount, token_pair_name));
+            sink.write(migrate(
+                code,
+                vm_type.raw() as u32,
+                name,
+                version,
+                author,
+                email,
+                desc,
+            ));
         }
         "oep4ToErc20" => {
             let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
             sink.write(oep4_to_erc20(ont_acct, eth_acct, amount, token_pair_name));
+        }
+        "erc20ToOep4" => {
+            let (ont_acct, eth_acct, amount, token_pair_name) = source.read().unwrap();
+            sink.write(erc20_to_oep4(ont_acct, eth_acct, amount, token_pair_name));
         }
         _ => panic!("unsupported action!"),
     }

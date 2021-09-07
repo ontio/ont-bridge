@@ -21,10 +21,17 @@ pub fn transfer_erc20(caller: &Address, target: &Address, to: &Address, amount: 
 }
 
 pub fn transfer_from_erc20(
-    caller: &Address, target: &Address, from: &Address, to: &Address, amount: U128,
+    caller: &Address,
+    target: &Address,
+    from: &Address,
+    to: &Address,
+    amount: U128,
 ) {
-    let res =
-        eth::evm_invoke(caller, target, gen_eth_transfer_from_data(from, to, amount).as_slice());
+    let res = eth::evm_invoke(
+        caller,
+        target,
+        gen_eth_transfer_from_data(from, to, amount).as_slice(),
+    );
     let mut source = Source::new(res.as_slice());
     let r: &H256 = source.read_h256().unwrap();
     assert!(!r.is_zero(), "transfer_from_erc20 failed");
@@ -35,7 +42,12 @@ const TRANSFER_FROM_ID: [u8; 4] = [0x23, 0xb8, 0x72, 0xdd];
 const BALANCEOF_ID: [u8; 4] = [0x70, 0xa0, 0x82, 0x31];
 
 fn gen_eth_transfer_data(to: &Address, amount: U128) -> Vec<u8> {
-    [TRANSFER_ID.as_ref(), format_addr(to).as_ref(), format_amount(amount).as_ref()].concat()
+    [
+        TRANSFER_ID.as_ref(),
+        format_addr(to).as_ref(),
+        format_amount(amount).as_ref(),
+    ]
+    .concat()
 }
 
 fn gen_eth_transfer_from_data(from_acct: &Address, to_acct: &Address, amount: U128) -> Vec<u8> {
