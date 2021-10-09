@@ -45,6 +45,7 @@ fn get_admin() -> Address {
 }
 
 fn set_pending_admin(new_admin: &Address) -> bool {
+    assert!(!new_admin.is_zero(), "new admin is zero address");
     assert!(check_witness(&get_admin()), "check admin signature failed");
     put(KEY_PENDING_ADMIN, new_admin);
     new_pending_admin_event(new_admin);
@@ -110,6 +111,10 @@ fn transfer_token_pair_owner(token_pair_name: &[u8], new_owner: &Address) -> boo
     let pair_key = gen_token_pair_key(token_pair_name);
     let mut pair: TokenPair = get(pair_key.as_slice()).expect("token pair name has not registered");
     let old = pair.owner.clone();
+    assert!(
+        check_witness(&get_admin()) || check_witness(&old),
+        "need admin or owner signature"
+    );
     pair.owner = *new_owner;
     put(pair_key, pair);
     transfer_token_pair_owner_evt(&old, new_owner);
