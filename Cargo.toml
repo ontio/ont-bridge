@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 path = "src/lib.rs"
 
 [dependencies]
-ontio-std = {git="https://github.com/ontio/ontology-wasm-cdt-rust", features=["bump-alloc"]}
+ontio-std = { git = "https://github.com/ontio/ontology-wasm-cdt-rust", features = ["bump-alloc"] }
 
 [features]
 mock = ["ontio-std/mock"]
