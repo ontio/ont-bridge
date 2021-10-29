@@ -140,14 +140,18 @@ fn update_token_pair(
     if &pair.oep4 != oep4_addr && !oep4_addr.is_zero() {
         assert!(!ont_acct.is_zero(), "ont acct should not be nil");
         let ba = balance_of_neovm(&pair.oep4, this);
-        transfer_neovm(&pair.oep4, this, ont_acct, ba);
+        if !ba.is_zero() {
+            transfer_neovm(&pair.oep4, this, ont_acct, ba);
+        }
         pair.oep4 = *oep4_addr;
     }
     pair.oep4_decimals = oep4_decimals.raw() as u32;
     if &pair.erc20 != erc20_addr && !erc20_addr.is_zero() {
         assert!(!eth_acct.is_zero(), "eth acct should not be nil");
         let ba = balance_of_erc20(this, &pair.erc20, this);
-        transfer_erc20(this, &pair.erc20, eth_acct, ba);
+        if !ba.is_zero() {
+            transfer_erc20(this, &pair.erc20, eth_acct, ba);
+        }
         pair.erc20 = *erc20_addr;
     }
     pair.erc20_decimals = erc20_decimals.raw() as u32;
