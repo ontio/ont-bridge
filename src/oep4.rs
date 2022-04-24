@@ -9,10 +9,10 @@ pub const ONG_CONTRACT_ADDRESS: Address = macros::base58!("AFmseVrdL9f9oyCzZefL9
 
 pub fn balance_of_neovm(contract: &Address, account: &Address) -> U128 {
     if contract == &ONT_CONTRACT_ADDRESS {
-        return ont::balance_of(account);
+        return ont::v2::balance_of(account);
     }
     if contract == &ONG_CONTRACT_ADDRESS {
-        return ong::balance_of(account);
+        return ong::v2::balance_of(account);
     }
     let mut builder = VmValueBuilder::new();
     builder.string("balanceOf");
@@ -24,9 +24,9 @@ pub fn balance_of_neovm(contract: &Address, account: &Address) -> U128 {
 
 pub fn transfer_neovm(contract: &Address, from: &Address, to: &Address, amount: U128) {
     if contract == &ONT_CONTRACT_ADDRESS {
-        assert!(ont::transfer(from, to, amount), "ont transfer failed");
+        assert!(ont::v2::transfer(from, to, amount), "ont transferV2 failed");
     } else if contract == &ONG_CONTRACT_ADDRESS {
-        assert!(ong::transfer(from, to, amount), "ong transfer failed");
+        assert!(ong::v2::transfer(from, to, amount), "ong transferV2 failed");
     } else {
         let mut builder = VmValueBuilder::new();
         builder.string("transfer");

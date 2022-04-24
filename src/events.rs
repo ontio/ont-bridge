@@ -24,7 +24,7 @@ pub fn transfer_token_pair_owner_evt(old_owner: &Address, new_owner: &Address) {
         .notify();
 }
 
-pub fn oep4_to_erc20_event(
+pub fn oep4_to_orc20_event(
     ont_acct: &Address,
     eth_acct: &Address,
     amount: U128,
@@ -33,7 +33,7 @@ pub fn oep4_to_erc20_event(
     erc20_addr: &Address,
 ) {
     EventBuilder::new()
-        .string("oep4ToErc20")
+        .string("oep4ToOrc20")
         .address(ont_acct)
         .address(eth_acct)
         .number(amount)
@@ -43,7 +43,7 @@ pub fn oep4_to_erc20_event(
         .notify();
 }
 
-pub fn erc20_to_oep4_event(
+pub fn orc20_to_oep4_event(
     ont_acct: &Address,
     eth_acct: &Address,
     amount: U128,
@@ -52,7 +52,7 @@ pub fn erc20_to_oep4_event(
     erc20_addr: &Address,
 ) {
     EventBuilder::new()
-        .string("erc20ToOep4")
+        .string("orc20ToOep4")
         .address(ont_acct)
         .address(eth_acct)
         .number(amount)
