@@ -34,7 +34,7 @@ struct TokenPair {
 }
 ```    
 
-3. oep4ToErc20
+3. oep4ToOrc20
 
 oep4 资产转换成erc20资产
 
@@ -56,7 +56,7 @@ oep4 资产转换成erc20资产
 
 |参数名|参数描述|
 |:---|:---|
-|oep4ToErc20|方法名|
+|oep4ToOrc20|方法名|
 |ont_acct|用户的ontology账户地址|
 |eth_acct|用户的ethereum账户地址|
 |amount|要兑换的oep4资产的数量|
@@ -66,7 +66,7 @@ oep4 资产转换成erc20资产
 
 
 
-4. erc20ToOep4
+4. orc20ToOep4
 
 erc20资产兑换成oep4资产
 
@@ -86,7 +86,7 @@ erc20资产兑换成oep4资产
 
 |参数名|参数描述|
 |:---|:---|
-|erc20ToOep4|方法名|
+|orc20ToOep4|方法名|
 |ont_acct|用户的ontology账户地址|
 |eth_acct|用户的ethereum账户地址|
 |amount|要兑换的erc20资产的数量|
